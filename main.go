@@ -6,8 +6,9 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
 	"os"
-	"regexp"
 	"strings"
+
+	"github.com/Mange/splitfiles/splitter"
 )
 
 var (
@@ -28,13 +29,16 @@ func main() {
 		app.FatalUsage(err.Error())
 	}
 
+	splitter, err := splitter.New(*pattern, *patternIsRegexp)
+	app.FatalIfError(err, "Could not parse PATTERN as Regexp: ")
+
 	file, err := openNextFile()
 	app.FatalIfError(err, "Could not create file: ")
 
 	scanner := bufio.NewScanner(os.Stdin)
 	writer := bufio.NewWriter(file)
 
-	err = scanLines(scanner, func(line string, newChunk bool) error {
+	err = scanChunks(scanner, splitter, func(chunk string, newChunk bool) error {
 		if newChunk {
 			writer.Flush()
 			file.Close()
@@ -46,7 +50,7 @@ func main() {
 			writer = bufio.NewWriter(file)
 		}
 
-		_, err := fmt.Fprintln(writer, line)
+		_, err := fmt.Fprintln(writer, chunk)
 		return err
 	})
 	app.FatalIfError(err, "")
@@ -68,20 +72,14 @@ func openNextFile() (*os.File, error) {
 	}
 }
 
-func scanLines(scanner *bufio.Scanner, block func(string, bool) error) error {
+func scanChunks(
+	scanner *bufio.Scanner,
+	splitter splitter.Splitter,
+	block func(string, bool) error,
+) error {
 	for scanner.Scan() {
 		line := scanner.Text()
-		var parts []string
-
-		if *patternIsRegexp {
-			regexpPattern, err := regexp.Compile(*pattern)
-			if err != nil {
-				return err
-			}
-			parts = regexpPattern.Split(line, -1)
-		} else {
-			parts = strings.Split(line, *pattern)
-		}
+		parts := splitter.Split(line)
 
 		if len(parts) == 1 {
 			err := block(line, false)
