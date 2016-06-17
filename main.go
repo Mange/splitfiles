@@ -6,15 +6,17 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 )
 
 var (
 	app      = kingpin.New("splitfiles", "Splits STDIN into files when encountering a pattern.")
-	pattern  = app.Arg("pattern", "Pattern to split on.").Required().String()
-	template = app.Arg("template", "File template to generate from.\nYou can control where in the filenames the sequential number will appear by inserting a series of \"?\" in it.").Required().String()
+	pattern  = app.Arg("PATTERN", "Pattern to split on.").Required().String()
+	template = app.Arg("TEMPLATE", "File template to generate from.\nYou can control where in the filenames the sequential number will appear by inserting a series of \"?\" in it.").Required().String()
 
-	overwrite = app.Flag("force", "Overwrite files instead of skipping them").Short('f').Bool()
+	overwrite       = app.Flag("force", "Overwrite files instead of skipping them").Short('f').Bool()
+	patternIsRegexp = app.Flag("regexp", "Parse PATTERN as a regular expression instead of a raw string.").Short('E').Bool()
 )
 
 func main() {
@@ -69,7 +71,17 @@ func openNextFile() (*os.File, error) {
 func scanLines(scanner *bufio.Scanner, block func(string, bool) error) error {
 	for scanner.Scan() {
 		line := scanner.Text()
-		parts := strings.Split(line, *pattern)
+		var parts []string
+
+		if *patternIsRegexp {
+			regexpPattern, err := regexp.Compile(*pattern)
+			if err != nil {
+				return err
+			}
+			parts = regexpPattern.Split(line, -1)
+		} else {
+			parts = strings.Split(line, *pattern)
+		}
 
 		if len(parts) == 1 {
 			err := block(line, false)
