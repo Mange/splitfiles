@@ -50,7 +50,7 @@ func main() {
 			writer = bufio.NewWriter(file)
 		}
 
-		_, err := fmt.Fprintln(writer, chunk)
+		_, err := fmt.Fprint(writer, chunk)
 		return err
 	})
 	app.FatalIfError(err, "")
@@ -78,7 +78,7 @@ func scanChunks(
 	block func(string, bool) error,
 ) error {
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := scanner.Text() + "\n"
 		parts := splitter.Split(line)
 
 		if len(parts) == 1 {
