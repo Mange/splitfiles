@@ -48,28 +48,26 @@ func main() {
 	splitter, err := splitter.New(*pattern, *patternIsRegexp)
 	app.FatalIfError(err, "Could not parse PATTERN as Regexp: ")
 
-	file, err := openNextFile()
-	app.FatalIfError(err, "Could not create file: ")
+	file := openNextFile()
 
 	scanner := bufio.NewScanner(os.Stdin)
 	writer := bufio.NewWriter(file)
 	linesWritten := 0
 
-	err = scanChunks(scanner, splitter, func(chunk string, newChunk bool) error {
+	scanChunks(scanner, splitter, func(chunk string, newChunk bool) {
 		if newChunk {
 			writer.Flush()
 			file.Close()
 			printLineswritten(linesWritten)
 
-			file, err = openNextFile()
-			if err != nil {
-				return err
-			}
+			file = openNextFile()
+			app.FatalIfError(err, "Could not open file: ")
 			writer = bufio.NewWriter(file)
 			linesWritten = 0
 		}
 
 		_, err := fmt.Fprint(writer, chunk)
+		app.FatalIfError(err, "Could not write to file: ")
 
 		// Special case: If we write any contents at all to a file, but that line
 		// never ends with a newline, we should still count one line. It's not the
@@ -81,10 +79,7 @@ func main() {
 		}
 
 		linesWritten += strings.Count(chunk, "\n")
-
-		return err
 	})
-	app.FatalIfError(err, "")
 
 	writer.Flush()
 	file.Close()
@@ -99,7 +94,7 @@ func printLineswritten(linesWritten int) {
 	}
 }
 
-func openNextFile() (*os.File, error) {
+func openNextFile() *os.File {
 	filename := NextFilename()
 	_, err := os.Stat(filename)
 	exists := !os.IsNotExist(err)
@@ -108,25 +103,24 @@ func openNextFile() (*os.File, error) {
 		app.Errorf("File %s already exists. Skipping it.", filename)
 		return openNextFile()
 	} else {
+		file, err := os.Create(filename)
+		app.FatalIfError(err, "Could not open file %s: ", filename)
 		fmt.Print(filename)
-		return os.Create(filename)
+		return file
 	}
 }
 
 func scanChunks(
 	scanner *bufio.Scanner,
 	splitter splitter.Splitter,
-	block func(string, bool) error,
-) error {
+	block func(string, bool),
+) {
 	for scanner.Scan() {
 		line := scanner.Text() + "\n"
 		parts := splitter.Split(line)
 
 		if len(parts) == 1 {
-			err := block(line, false)
-			if err != nil {
-				return err
-			}
+			block(line, false)
 		} else {
 			/*
 				First part is not "new", but all the others are:
@@ -141,9 +135,6 @@ func scanChunks(
 			}
 		}
 	}
-	if err := scanner.Err(); err != nil {
-		return err
-		app.Fatalf("Error while reading STDIN: %s", err.Error())
-	}
-	return nil
+	err := scanner.Err()
+	app.FatalIfError(err, "Error while reading STDIN: ")
 }
