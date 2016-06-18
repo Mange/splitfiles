@@ -37,7 +37,7 @@ const (
 )
 
 func main() {
-	kingpin.Version("0.0.1")
+	kingpin.Version("1.0.0")
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
 	err := SetupFilenameTemplate(*template)
