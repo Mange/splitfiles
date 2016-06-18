@@ -33,6 +33,8 @@ If you have Go installed and a proper `$GOPATH` set up, you can install using th
 go install github.com/Mange/splitfiles
 ```
 
+If not, you can [download precompiled binaries on the Releases page][releases].
+
 
 ### Autocompletion
 
@@ -59,3 +61,5 @@ Depending on your machine, you might need elevated priviliges to write to this d
 ## License
 
 See LICENSE file, but tl;dr: MIT.
+
+[releases]: https://github.com/Mange/splitfiles/releases/
