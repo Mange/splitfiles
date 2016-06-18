@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"io"
 	"os"
-	"strings"
 
 	"github.com/Mange/splitfiles/splitter"
 )
@@ -105,15 +103,4 @@ func scanChunks(
 		app.Fatalf("Error while reading STDIN: %s", err.Error())
 	}
 	return nil
-}
-
-func handleLine(line string, writer io.Writer) (splitHappened bool, remainder string) {
-	parts := strings.SplitN(line, *pattern, 2)
-	if len(parts) == 1 {
-		fmt.Fprintln(writer, line)
-		return false, ""
-	} else {
-		fmt.Fprintln(writer, parts[0])
-		return true, parts[1]
-	}
 }
