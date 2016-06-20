@@ -31,11 +31,6 @@ var (
 	verbose         = app.Flag("verbose", "Print number of lines in each file.").Short('v').Bool()
 )
 
-const (
-	verboseOutput = "\t%d\n"
-	normalOutput  = "\n"
-)
-
 func main() {
 	kingpin.Version("1.0.0")
 	kingpin.MustParse(app.Parse(os.Args[1:]))
